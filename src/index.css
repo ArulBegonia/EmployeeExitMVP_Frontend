@@ -1,0 +1,44 @@
+
+:root {
+  --color-primary: #27235C;
+  --color-secondary: #9D247D;
+  --btn-primary: #27235C;
+  --btn-primary-hover: #1a1845;
+  --btn-secondary: #E2E8F0;
+  --btn-secondary-hover: #CBD5E1;
+  --btn-secondary-text: #334155;
+  --bg-page: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --border: #E5E7EB;
+  --success: #16A34A;
+  --warning: #D97706;
+  --error: #DC2626;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-page);
+  color: #1E293B;
+  min-height: 100vh;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+a { text-decoration: none; color: inherit; }
+
+button { cursor: pointer; font-family: inherit; }
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
