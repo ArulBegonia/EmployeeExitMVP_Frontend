@@ -1,4 +1,8 @@
-.pg { display: flex; flex-direction: column; gap: 20px; }
+.pg {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
 /* ══════════════════════════════════════
    PAGE HEADER — matches portal standard
@@ -11,23 +15,40 @@
   padding: 26px 32px;
   box-shadow: 0 8px 32px rgba(39, 35, 92, 0.28);
 }
+
+.hdrText h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.hdrText p {
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .hdrGrid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
   background-size: 24px 24px;
   pointer-events: none;
   z-index: 0;
 }
+
 .hdrOrb {
   position: absolute;
-  width: 260px; height: 260px;
+  width: 260px;
+  height: 260px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(157,36,125,0.38) 0%, transparent 70%);
-  right: -50px; top: -80px;
+  background: radial-gradient(circle, rgba(157, 36, 125, 0.38) 0%, transparent 70%);
+  right: -50px;
+  top: -80px;
   pointer-events: none;
   z-index: 0;
 }
+
 .hdrContent {
   position: relative;
   z-index: 1;
@@ -35,34 +56,49 @@
   flex-direction: column;
   gap: 6px;
 }
+
 .hdrEyebrow {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 100px;
   padding: 4px 12px;
   width: fit-content;
 }
+
 .hdrEyebrow span:last-child {
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255,255,255,0.78);
+  color: rgba(255, 255, 255, 0.78);
   letter-spacing: 1px;
   text-transform: uppercase;
 }
+
 .hdrEyebrowDot {
-  width: 6px; height: 6px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #f9a8d4;
   flex-shrink: 0;
   animation: pulse 2.4s ease-in-out infinite;
 }
+
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.45; transform: scale(1.5); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(1.5);
+  }
 }
+
 .hdrMain {
   display: flex;
   align-items: center;
@@ -70,6 +106,7 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
 .hdrTitle {
   font-size: 24px;
   font-weight: 800;
@@ -78,11 +115,14 @@
   margin: 0 0 4px;
   line-height: 1.15;
 }
+
 .hdrSub {
   font-size: 13.5px;
-  color: rgba(255,255,255,0.55);
+  color: rgba(255, 255, 255, 0.55);
   margin: 0;
 }
+
+
 
 /* ══════════════════════════════════════
    CTA CARD
@@ -99,13 +139,16 @@
   text-decoration: none;
   transition: box-shadow 0.15s, transform 0.12s, border-color 0.15s;
 }
+
 .ctaCard:hover {
-  box-shadow: 0 8px 24px rgba(39,35,92,0.12);
+  box-shadow: 0 8px 24px rgba(39, 35, 92, 0.12);
   transform: translateY(-2px);
-  border-color: rgba(39,35,92,0.25);
+  border-color: rgba(39, 35, 92, 0.25);
 }
+
 .ctaIcon {
-  width: 52px; height: 52px;
+  width: 52px;
+  height: 52px;
   background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
   border: 1.5px solid #C7D2FE;
   border-radius: 12px;
@@ -115,16 +158,32 @@
   color: #27235C;
   flex-shrink: 0;
 }
-.ctaBody  { flex: 1; }
+
+.ctaBody {
+  flex: 1;
+}
+
 .ctaTitle {
   font-size: 15px;
   font-weight: 800;
   color: #1e293b;
   margin-bottom: 4px;
 }
-.ctaDesc { font-size: 13px; color: #64748B; }
-.ctaArrow { color: #CBD5E1; transition: color 0.15s, transform 0.15s; }
-.ctaCard:hover .ctaArrow { color: #9D247D; transform: translateX(3px); }
+
+.ctaDesc {
+  font-size: 13px;
+  color: #64748B;
+}
+
+.ctaArrow {
+  color: #CBD5E1;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.ctaCard:hover .ctaArrow {
+  color: #9D247D;
+  transform: translateX(3px);
+}
 
 /* ══════════════════════════════════════
    CHECKLIST
@@ -137,7 +196,13 @@
   letter-spacing: 0.5px;
   margin-bottom: 14px;
 }
-.checklist { display: flex; flex-direction: column; gap: 10px; }
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .checkItem {
   display: flex;
   align-items: flex-start;
@@ -148,12 +213,15 @@
   border-radius: 10px;
   transition: box-shadow 0.15s, transform 0.12s;
 }
+
 .checkItem:hover {
-  box-shadow: 0 3px 10px rgba(39,35,92,0.07);
+  box-shadow: 0 3px 10px rgba(39, 35, 92, 0.07);
   transform: translateY(-1px);
 }
+
 .checkIcon {
-  width: 38px; height: 38px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -162,9 +230,20 @@
 }
 
 /* Icon colour variants — portal palette */
-.iconPurple { background: rgba(39,35,92,0.08);   color: #27235C; }
-.iconDark   { background: rgba(79,70,229,0.08);   color: #4F46E5; }
-.iconPink   { background: rgba(157,36,125,0.08);  color: #9D247D; }
+.iconPurple {
+  background: rgba(39, 35, 92, 0.08);
+  color: #27235C;
+}
+
+.iconDark {
+  background: rgba(79, 70, 229, 0.08);
+  color: #4F46E5;
+}
+
+.iconPink {
+  background: rgba(157, 36, 125, 0.08);
+  color: #9D247D;
+}
 
 .checkLabel {
   font-size: 14px;
@@ -172,8 +251,14 @@
   color: #1e293b;
   margin-bottom: 3px;
 }
-.checkDesc { font-size: 13px; color: #64748B; }
+
+.checkDesc {
+  font-size: 13px;
+  color: #64748B;
+}
 
 @media (max-width: 480px) {
-  .hdr { padding: 22px 20px; }
+  .hdr {
+    padding: 22px 20px;
+  }
 }

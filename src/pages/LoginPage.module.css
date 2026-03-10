@@ -218,12 +218,12 @@
   background: #fff;
   border: 1px solid #E5E7EB;
   border-radius: 20px;
-  padding: 32px 32px 28px;   /* slightly tighter */
+  padding: 32px 32px 28px;  
   box-shadow: 0 4px 6px rgba(0,0,0,0.04), 0 10px 40px rgba(39,35,92,0.07);
 }
 
-/* ── Form Header ── */
-.formHead { margin-bottom: 0; }
+/*  Form Header  */
+.formHead { margin-bottom: 0; text-align: center; }
 .formBadge {
   display: inline-flex; align-items: center; gap: 7px;
   background: rgba(39,35,92,0.06);
@@ -310,7 +310,7 @@
 .eyeBtn:hover { color: #27235C; background: rgba(39,35,92,0.07); }
 .eyeBtn:focus-visible { outline: 2px solid #27235C; outline-offset: 1px; }
 
-/* ── Error Box ── */
+/*  Error Box  */
 .errorBox {
   display: flex; align-items: flex-start; gap: 10px;
   background: #FEF2F2; color: #DC2626;
@@ -330,7 +330,7 @@
   flex-shrink: 0;
 }
 
-/* ── Submit Button ── */
+/*  Submit Button  */
 .submitBtn {
   margin-top: 2px;
   display: flex; align-items: center; justify-content: center; gap: 9px;
@@ -365,7 +365,7 @@
 .submitBtn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; transform: none; }
 .submitBtn:focus-visible { outline: 3px solid #9D247D; outline-offset: 2px; }
 
-/* ── Spinner ── */
+/*  Spinner  */
 .spinner {
   width: 18px; height: 18px;
   border: 2.5px solid rgba(255,255,255,0.3);
@@ -374,7 +374,7 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Footer Note ── */
+/*  Footer Note  */
 .footerNote {
   margin-top: 16px; padding: 12px 14px;
   background: #F8FAFC; border: 1px solid #E5E7EB;
@@ -389,9 +389,7 @@
 }
 .footerNote p { font-size: 12px; color: #64748B; margin: 0; line-height: 1.7; }
 
-/* ══════════════════════════════════════
-   PROCESS STEPS (replaces pills)
-══════════════════════════════════════ */
+/* PROCESS STEPS (replaces pills) */
 .stepList {
   display: flex;
   flex-direction: column;
@@ -444,9 +442,7 @@
   line-height: 1.65;
 }
 
-/* ══════════════════════════════════════
-   METRICS STRIP (replaces stats)
-══════════════════════════════════════ */
+/* METRICS STRIP (replaces stats) */
 .metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -476,7 +472,7 @@
   letter-spacing: 0.3px;
 }
 
-/* ── Field-level error ── */
+/*  Field-level error  */
 .fieldErr {
   display: flex;
   align-items: center;
@@ -494,9 +490,7 @@
   box-shadow: 0 0 0 3px rgba(220,38,38,0.1);
 }
 
-/* ══════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════ */
+/* RESPONSIVE */
 @media (max-width: 1100px) {
   .heroTitle { font-size: 36px; }
   .left  { padding: 28px 40px; }

@@ -27,7 +27,7 @@ const DOC_TYPES = [
   },
   {
     key:      'clearance',
-    label:    'Clearance Cert',
+    label:    'Clearance Certificate',
     icon:     <Shield size={13} />,
     endpoint: id => `/Exit/clearance-certificate/${id}`,
     filename: 'ClearanceCertificate.pdf',

@@ -553,6 +553,127 @@ border:1.5px solid #FECACA;
 color:#DC2626;
 }
 
+/* APPROVE / REJECT MODAL */
+
+.conf{
+display:flex;
+flex-direction:column;
+gap:16px;
+}
+
+.intentApprove,
+.intentReject{
+display:flex;
+align-items:flex-start;
+gap:12px;
+padding:14px 16px;
+border-radius:12px;
+border:1.5px solid transparent;
+}
+
+.intentApprove{
+background:#F0FDF4;
+border-color:#BBF7D0;
+}
+
+.intentReject{
+background:#FEF2F2;
+border-color:#FECACA;
+}
+
+.intentIcon{
+width:36px;
+height:36px;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-shrink:0;
+}
+
+.intentApprove .intentIcon{
+background:rgba(22,163,74,0.12);
+color:#16A34A;
+}
+
+.intentReject .intentIcon{
+background:rgba(220,38,38,0.1);
+color:#DC2626;
+}
+
+.intentBody strong{
+font-size:13.5px;
+font-weight:700;
+display:block;
+margin-bottom:3px;
+}
+
+.intentApprove .intentBody strong{
+color:#15803D;
+}
+
+.intentReject .intentBody strong{
+color:#B91C1C;
+}
+
+.intentBody p{
+font-size:12.5px;
+margin:0;
+line-height:1.55;
+}
+
+.intentApprove .intentBody p{
+color:#166534;
+}
+
+.intentReject .intentBody p{
+color:#991B1B;
+}
+
+
+/* Info grid */
+
+.cInfo{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:1px;
+background:#E2E8F0;
+border:1px solid #E2E8F0;
+border-radius:12px;
+overflow:hidden;
+}
+
+
+/* textarea */
+
+.ftextarea{
+padding:11px 14px;
+border:1.5px solid #E2E8F0;
+border-radius:11px;
+font-size:13.5px;
+font-family:inherit;
+outline:none;
+background:#fff;
+resize:vertical;
+min-height:90px;
+line-height:1.6;
+}
+
+.ftextarea:focus{
+border-color:#27235C;
+box-shadow:0 0 0 3px rgba(39,35,92,0.12);
+}
+
+
+/* actions */
+
+.ca{
+display:flex;
+justify-content:flex-end;
+gap:10px;
+padding-top:4px;
+}
+
 @media (max-width:1024px){
 .cards{grid-template-columns:repeat(2,1fr);}
 }

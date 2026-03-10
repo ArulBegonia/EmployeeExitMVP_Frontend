@@ -1,7 +1,7 @@
 .pg { display: flex; flex-direction: column; gap: 20px; }
 
 /* ══════════════════════════════════════
-   PAGE HEADER — matches portal standard
+   PAGE HEADER
 ══════════════════════════════════════ */
 .hdr {
   position: relative;
@@ -284,6 +284,46 @@
 }
 
 /* ══════════════════════════════════════
+   LWD NOTICE VARIANTS
+══════════════════════════════════════ */
+.lwdNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  color: #92400E;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.lwdNotice svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Overdue — red, stronger */
+.lwdOverdue {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  color: #991B1B;
+}
+
+/* Today — orange */
+.lwdToday {
+  background: #FFF7ED;
+  border-color: #FDBA74;
+  color: #9A3412;
+}
+
+/* Urgent (≤3 days) — amber */
+.lwdUrgent {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+/* ══════════════════════════════════════
    ITEMS GRID
 ══════════════════════════════════════ */
 .itemsGrid {
@@ -415,11 +455,6 @@
 .extraField input:focus {
   border-color: #27235C;
   box-shadow: 0 0 0 3px rgba(39,35,92,0.08);
-}
-.fieldErr {
-  font-size: 11px;
-  color: #DC2626;
-  font-weight: 600;
 }
 
 .req       { color: #DC2626; margin-left: 2px; font-weight: 700; }

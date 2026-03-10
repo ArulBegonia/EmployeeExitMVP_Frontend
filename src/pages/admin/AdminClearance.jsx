@@ -4,10 +4,15 @@ import Card from '../../components/common/Card.jsx'
 import Button from '../../components/common/Button.jsx'
 import Loader from '../../components/common/Loader.jsx'
 import toast from 'react-hot-toast'
-import { Shield, CheckCircle, XCircle, RefreshCw, Info, Package } from 'lucide-react'
+import {
+  Shield, CheckCircle, XCircle, Info, Package,
+  AlertTriangle, RefreshCw, ShieldOff
+} from 'lucide-react'
 import s from './AdminClearance.module.css'
 
+
 const RELEVANT_STATUSES = ['ClearanceInProgress']
+
 
 export default function AdminClearance() {
   const [list,         setList]         = useState([])
@@ -15,8 +20,9 @@ export default function AdminClearance() {
   const [itemsMap,     setItemsMap]     = useState({})
   const [itemsLoading, setItemsLoading] = useState({})
   const [itemState,    setItemState]    = useState({})
-  const [itemErrors,   setItemErrors]   = useState({})    
+  const [itemErrors,   setItemErrors]   = useState({})
   const [submittingId, setSubmittingId] = useState(null)
+
 
   const load = () => {
     setLoading(true)
@@ -30,6 +36,7 @@ export default function AdminClearance() {
       .catch(() => toast.error('Failed to load admin clearance list'))
       .finally(() => setLoading(false))
   }
+
 
   const loadItems = async (exitId) => {
     setItemsLoading(p => ({ ...p, [exitId]: true }))
@@ -54,28 +61,40 @@ export default function AdminClearance() {
     }
   }
 
+
   useEffect(() => { load() }, [])
+
 
   const getItemState = (itemId) => itemState[itemId] || {
     isCleared: true, remarks: '', returnedDate: '', pendingDueAmount: '',
   }
+
 
   const setField = (itemId, field, value) => {
     setItemState(p => ({ ...p, [itemId]: { ...getItemState(itemId), [field]: value } }))
     setItemErrors(p => ({ ...p, [itemId]: { ...(p[itemId] || {}), [field]: undefined } }))
   }
 
-  const validateItem = (itemId) => {
+
+  /* ── VALIDATION — same rule as IT: return date must be on or before LWD ── */
+  const validateItem = (itemId, lwd) => {
     const st   = getItemState(itemId)
     const errs = {}
 
     if (st.isCleared) {
-      if (!st.returnedDate)
+      if (!st.returnedDate) {
         errs.returnedDate = 'Return date is required when marking as cleared.'
-      else {
-        const rd    = new Date(st.returnedDate); rd.setHours(0, 0, 0, 0)
-        const today = new Date();                today.setHours(0, 0, 0, 0)
-        if (rd > today) errs.returnedDate = 'Return date cannot be in the future.'
+      } else if (lwd) {
+        // ✅ Only rule: return date must be on or before LWD (future dates within LWD are valid)
+        const rd = new Date(st.returnedDate)
+        rd.setHours(0, 0, 0, 0)
+
+        const lastDay = new Date(lwd)
+        lastDay.setHours(0, 0, 0, 0)
+
+        if (rd > lastDay)
+          errs.returnedDate =
+            `Assets must be returned on or before the employee's Last Working Day (${lastDay.toLocaleDateString('en-GB')}).`
       }
     }
 
@@ -97,28 +116,67 @@ export default function AdminClearance() {
     return Object.keys(errs).length === 0
   }
 
-  const submitItem = async (item, exitId) => {
-    if (!validateItem(item.id)) return    
+
+  /* ── SUBMIT ── */
+  const submitItem = async (item, row) => {
+    if (!validateItem(item.id, row.proposedLastWorkingDate)) return
+
     const st = getItemState(item.id)
     setSubmittingId(item.id)
+
     try {
       await api.post('/Exit/update-clearance-item', {
-        itemId:           item.id,
+        itemId:           Number(item.id),
         isCleared:        st.isCleared,
         remarks:          st.remarks || null,
-        returnedDate:     st.isCleared && st.returnedDate
-                            ? new Date(st.returnedDate).toISOString() : null,
-        pendingDueAmount: !st.isCleared && st.pendingDueAmount
-                            ? parseFloat(st.pendingDueAmount) : null,
+        // ✅ Plain "YYYY-MM-DD" — no .toISOString() to avoid timezone shifting
+        returnedDate:
+          st.isCleared && st.returnedDate
+            ? st.returnedDate
+            : null,
+        pendingDueAmount:
+          !st.isCleared && st.pendingDueAmount
+            ? parseFloat(st.pendingDueAmount)
+            : null,
+        // ✅ Send LWD so backend validates against it instead of today
+        proposedLastWorkingDate: row.proposedLastWorkingDate
+          ? row.proposedLastWorkingDate.split('T')[0]
+          : null
       })
-      toast.success(`${item.itemName} — ${st.isCleared ? 'cleared ' : 'flagged '}`)
-      await loadItems(exitId)
+      toast.success(`${item.itemName} — ${st.isCleared ? 'cleared' : 'flagged'}`)
+      await loadItems(row.id)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed')
-    } finally { setSubmittingId(null) }
+    } finally {
+      setSubmittingId(null)
+    }
   }
 
+
+  /* ── LWD HELPERS ── */
+  const getLwdStatus = (proposedLastWorkingDate) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const lwd = new Date(proposedLastWorkingDate)
+    lwd.setHours(0, 0, 0, 0)
+
+    const diffDays = Math.ceil((lwd - today) / (1000 * 60 * 60 * 24))
+
+    if (diffDays < 0)   return { type: 'overdue', daysAgo: Math.abs(diffDays) }
+    if (diffDays === 0) return { type: 'today' }
+    if (diffDays <= 3)  return { type: 'urgent',  daysLeft: diffDays }
+    return { type: 'normal' }
+  }
+
+  const hasPendingItems = (exitId) => {
+    const items = itemsMap[exitId] || []
+    return items.some(item => !getItemState(item.id).isCleared)
+  }
+
+
   if (loading) return <Loader />
+
 
   return (
     <div className={s.pg}>
@@ -136,13 +194,15 @@ export default function AdminClearance() {
             <div>
               <h2 className={s.hdrTitle}>Admin Clearance</h2>
               <p className={s.hdrSub}>
-                Track and clear administrative assets for each exiting employee
-                {list.length > 0 && ` · ${list.length} active`}
+                {list.length > 0
+                  ? `${list.length} employee${list.length !== 1 ? 's' : ''} pending clearance`
+                  : 'Track and clear administrative assets for each exiting employee'}
               </p>
             </div>
           </div>
         </div>
       </div>
+
 
       {/* ── Empty state ── */}
       {list.length === 0 ? (
@@ -150,11 +210,16 @@ export default function AdminClearance() {
           <div className={s.emptyVisual}>
             <div className={s.emptyRing1} />
             <div className={s.emptyRing2} />
-            <div className={s.emptyIconWrap}><CheckCircle size={26} /></div>
+            <div className={`${s.emptyIconWrap} ${s.emptyIconGreen}`}>
+              <ShieldOff size={24} />
+            </div>
           </div>
           <div className={s.emptyText}>
-            <h3>All Cleared!</h3>
-            <p>No exits are currently in the clearance stage.</p>
+            <h3>No Pending Clearances</h3>
+            <p>No exits are currently in the clearance stage. Check back later or refresh.</p>
+            <button className={s.retryBtn} onClick={load}>
+              <RefreshCw size={14} /> Refresh
+            </button>
           </div>
         </div>
       ) : (
@@ -162,8 +227,20 @@ export default function AdminClearance() {
           {list.map(row => {
             const items        = itemsMap[row.id] || []
             const isLoading    = itemsLoading[row.id]
-            const clearedCount = items.filter(i => i.status === 'Cleared').length
-            const allDone      = items.length > 0 && clearedCount === items.length
+            const lwd          = new Date(row.proposedLastWorkingDate)
+            const lwdFormatted = lwd.toLocaleDateString('en-GB')
+            const lwdStatus    = getLwdStatus(row.proposedLastWorkingDate)
+            const pendingExists = hasPendingItems(row.id)
+
+            // ✅ Cap the date picker at LWD — no today restriction
+            const lwdStr = row.proposedLastWorkingDate.split('T')[0]
+
+            const clearedCount = items.filter(item => getItemState(item.id).isCleared).length
+            const totalCount   = items.length
+            const progressPct  = totalCount > 0 ? Math.round((clearedCount / totalCount) * 100) : 0
+            const progressColor =
+              progressPct === 100 ? '#16A34A' :
+              progressPct >= 50   ? '#F59E0B' : '#DC2626'
 
             return (
               <Card key={row.id}>
@@ -179,29 +256,58 @@ export default function AdminClearance() {
                       <span className={s.dot}>·</span>
                       <span>Request #{row.id}</span>
                       <span className={s.dot}>·</span>
-                      <span>Last Day: <strong>
-                        {new Date(row.proposedLastWorkingDate).toLocaleDateString('en-GB',
-                          { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </strong></span>
+                      <span>Last Day: <strong>{lwdFormatted}</strong></span>
                     </div>
                   </div>
-                  <div className={s.progressWrap}>
-                    <div className={s.progressBar}>
-                      <div
-                        className={s.progressFill}
-                        style={{
-                          width: items.length > 0
-                            ? `${(clearedCount / items.length) * 100}%` : '0%',
-                          background: allDone ? '#16A34A' : '#27235C',
-                        }}
-                      />
+
+                  {!isLoading && totalCount > 0 && (
+                    <div className={s.progressWrap}>
+                      <div className={s.progressBar}>
+                        <div
+                          className={s.progressFill}
+                          style={{ width: `${progressPct}%`, background: progressColor }}
+                        />
+                      </div>
+                      <span className={s.progressLabel} style={{ color: progressColor }}>
+                        {clearedCount}/{totalCount} cleared
+                      </span>
                     </div>
-                    <span className={s.progressLabel}
-                      style={{ color: allDone ? '#16A34A' : '#64748B' }}>
-                      {clearedCount}/{items.length} cleared
+                  )}
+                </div>
+
+
+                {/* ── LWD Notice — same logic as IT ── */}
+                {lwdStatus.type === 'overdue' && pendingExists ? (
+                  <div className={`${s.lwdNotice} ${s.lwdOverdue}`}>
+                    <AlertTriangle size={14} />
+                    <span>
+                      <strong>Overdue by {lwdStatus.daysAgo} day{lwdStatus.daysAgo !== 1 ? 's' : ''}!</strong>
+                      {' '}LWD was {lwdFormatted}. Pending assets must be resolved immediately.
                     </span>
                   </div>
-                </div>
+                ) : lwdStatus.type === 'today' ? (
+                  <div className={`${s.lwdNotice} ${s.lwdToday}`}>
+                    <AlertTriangle size={14} />
+                    <span>
+                      <strong>Today is the Last Working Day!</strong>
+                      {' '}All assets must be returned today ({lwdFormatted}).
+                    </span>
+                  </div>
+                ) : lwdStatus.type === 'urgent' ? (
+                  <div className={`${s.lwdNotice} ${s.lwdUrgent}`}>
+                    <AlertTriangle size={14} />
+                    <span>
+                      <strong>{lwdStatus.daysLeft} day{lwdStatus.daysLeft !== 1 ? 's' : ''} left!</strong>
+                      {' '}Assets must be returned on or before LWD ({lwdFormatted}).
+                    </span>
+                  </div>
+                ) : (
+                  <div className={s.lwdNotice}>
+                    <AlertTriangle size={14} />
+                    Assets must be returned on or before the employee's Last Working Day ({lwdFormatted})
+                  </div>
+                )}
+
 
                 {/* Items */}
                 {isLoading ? (
@@ -213,68 +319,63 @@ export default function AdminClearance() {
                 ) : (
                   <div className={s.itemsGrid}>
                     {items.map(item => {
-                      const st             = getItemState(item.id)
-                      const errs           = itemErrors[item.id] || {}  
-                      const alreadyCleared = item.status === 'Cleared'
-                      const alreadyFlagged = item.status === 'NotCleared'
+                      const st   = getItemState(item.id)
+                      const errs = itemErrors[item.id] || {}
 
                       return (
-                        <div key={item.id}
-                          className={`${s.itemCard} ${
-                            alreadyCleared ? s.itemCleared :
-                            alreadyFlagged ? s.itemFlagged : ''}`}>
-
+                        <div
+                          key={item.id}
+                          className={`${s.itemCard} ${st.isCleared ? s.itemCleared : s.itemFlagged}`}
+                        >
                           {/* Item header */}
                           <div className={s.itemTop}>
-                            <div className={`${s.itemIcon} ${
-                              alreadyCleared ? s.itemIconCleared :
-                              alreadyFlagged ? s.itemIconFlagged : ''}`}>
+                            <div className={`${s.itemIcon} ${st.isCleared ? s.itemIconCleared : s.itemIconFlagged}`}>
                               <Package size={14} />
                             </div>
                             <div className={s.itemName}>{item.itemName}</div>
-                            {alreadyCleared && <span className={s.clearedTag}>✓ Cleared</span>}
-                            {alreadyFlagged && <span className={s.flaggedTag}>⚠ Flagged</span>}
+                            {st.isCleared
+                              ? <span className={s.clearedTag}>Cleared</span>
+                              : <span className={s.flaggedTag}>Flagged</span>
+                            }
                           </div>
 
                           {/* Decision toggle */}
                           <div className={s.decRow}>
-                            <button type="button"
+                            <button
+                              type="button"
                               className={`${s.decBtn} ${st.isCleared ? s.decCleared : ''}`}
-                              onClick={() => {
-                                setField(item.id, 'isCleared', true)
-                                setItemErrors(p => ({
-                                  ...p, [item.id]: { ...(p[item.id] || {}), returnedDate: undefined }
-                                }))
-                              }}>
+                              onClick={() => setField(item.id, 'isCleared', true)}
+                            >
                               <CheckCircle size={12} /> Cleared
                             </button>
-                            <button type="button"
+                            <button
+                              type="button"
                               className={`${s.decBtn} ${!st.isCleared ? s.decFlagged : ''}`}
-                              onClick={() => {
-                                setField(item.id, 'isCleared', false)
-                                setItemErrors(p => ({
-                                  ...p, [item.id]: { ...(p[item.id] || {}), returnedDate: undefined }
-                                }))
-                              }}>
+                              onClick={() => setField(item.id, 'isCleared', false)}
+                            >
                               <XCircle size={12} /> Not Cleared
                             </button>
                           </div>
 
-                          {/* Return date — required when cleared */}
+                          {/* Return date — capped at LWD, not today */}
                           {st.isCleared && (
                             <div className={s.extraField}>
                               <label>
                                 Return Date <span className={s.req}>*</span>
                               </label>
+                              {/* ✅ Calendar allows any date up to LWD */}
                               <input
                                 type="date"
-                                max={new Date().toISOString().split('T')[0]}
+                                max={lwdStr}
                                 value={st.returnedDate}
                                 onChange={e => setField(item.id, 'returnedDate', e.target.value)}
                                 style={{ borderColor: errs.returnedDate ? '#DC2626' : undefined }}
                               />
                               {errs.returnedDate && (
-                                <span className={s.fieldErr}>{errs.returnedDate}</span>
+                                <span className={s.fieldErr}>
+                                  <AlertTriangle size={11} />
+                                  {errs.returnedDate}
+                                </span>
                               )}
                             </div>
                           )}
@@ -293,7 +394,10 @@ export default function AdminClearance() {
                                 style={{ borderColor: errs.pendingDueAmount ? '#DC2626' : undefined }}
                               />
                               {errs.pendingDueAmount && (
-                                <span className={s.fieldErr}>{errs.pendingDueAmount}</span>
+                                <span className={s.fieldErr}>
+                                  <AlertTriangle size={11} />
+                                  {errs.pendingDueAmount}
+                                </span>
                               )}
                             </div>
                           )}
@@ -307,13 +411,17 @@ export default function AdminClearance() {
                               onChange={e => setField(item.id, 'remarks', e.target.value)}
                               style={{ borderColor: errs.remarks ? '#DC2626' : undefined }}
                             />
-                            {/* ── NEW: char counter ── */}
-                            <span className={s.charCount}
-                              style={{ color: st.remarks.length > 500 ? '#DC2626' : undefined }}>
-                              {st.remarks.length}/500
+                            <span
+                              className={s.charCount}
+                              style={{ color: (st.remarks || '').length > 500 ? '#DC2626' : undefined }}
+                            >
+                              {(st.remarks || '').length}/500
                             </span>
                             {errs.remarks && (
-                              <span className={s.fieldErr}>{errs.remarks}</span>
+                              <span className={s.fieldErr}>
+                                <AlertTriangle size={11} />
+                                {errs.remarks}
+                              </span>
                             )}
                           </div>
 
@@ -321,7 +429,8 @@ export default function AdminClearance() {
                             variant="primary"
                             size="sm"
                             loading={submittingId === item.id}
-                            onClick={() => submitItem(item, row.id)}>
+                            onClick={() => submitItem(item, row)}
+                          >
                             <Shield size={12} /> Submit
                           </Button>
                         </div>
@@ -329,6 +438,7 @@ export default function AdminClearance() {
                     })}
                   </div>
                 )}
+
               </Card>
             )
           })}

@@ -102,7 +102,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <div>
-              <div className={styles.brandName}>ExitManage</div>
+              <div className={styles.brandName}>ExitManagement</div>
               <div className={styles.brandBy}>by Relevantz Technologies</div>
             </div>
           </div>
@@ -267,7 +267,6 @@ export default function LoginPage() {
             </div>
             <p>
               Protected by role-based access control.
-              Contact your administrator if you cannot sign in.
             </p>
           </div>
 
