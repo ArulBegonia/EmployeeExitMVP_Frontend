@@ -15,23 +15,26 @@ const RELEVANT_STATUSES = ['ClearanceInProgress']
 
 export default function ITClearance() {
 
-  const [list,          setList]          = useState([])
-  const [loading,       setLoading]       = useState(true)
-  const [forbidden,     setForbidden]     = useState(false)
-  const [expandedId,    setExpandedId]    = useState(null)
+  const [list,           setList]           = useState([])
+  const [loading,        setLoading]        = useState(true)
+  const [forbidden,      setForbidden]      = useState(false)
+  const [expandedId,     setExpandedId]     = useState(null)
 
-  // Search / filter / sort
-  const [search,        setSearch]        = useState('')
-  const [filterStatus,  setFilterStatus]  = useState('all')
-  const [sortBy,        setSortBy]        = useState('urgency')
-  const [showControls,  setShowControls]  = useState(false)
+  const [search,         setSearch]         = useState('')
+  const [filterStatus,   setFilterStatus]   = useState('all')
+  const [sortBy,         setSortBy]         = useState('urgency')
+  const [showControls,   setShowControls]   = useState(false)
 
-  const [itemsMap,      setItemsMap]      = useState({})
-  const [itemsLoading,  setItemsLoading]  = useState({})
-  const [itemState,     setItemState]     = useState({})
-  const [itemErrors,    setItemErrors]    = useState({})
-  const [submittingId,  setSubmittingId]  = useState(null)
-  const [bulkSubmitting,setBulkSubmitting]= useState(null) // exitId being bulk-submitted
+  const [itemsMap,       setItemsMap]       = useState({})
+  const [itemsLoading,   setItemsLoading]   = useState({})
+  const [itemState,      setItemState]      = useState({})
+  const [itemErrors,     setItemErrors]     = useState({})
+  const [submittingId,   setSubmittingId]   = useState(null)
+  const [bulkSubmitting, setBulkSubmitting] = useState(null)
+
+  // ── FIX: keep a ref that always mirrors the latest itemState ──
+  const itemStateRef = useRef({})
+  useEffect(() => { itemStateRef.current = itemState }, [itemState])
 
   const searchRef = useRef(null)
 
@@ -124,7 +127,9 @@ export default function ITClearance() {
 
   /* ── ITEM STATE ── */
   const getItemState = (itemId) =>
-    itemState[itemId] || { isCleared: true, remarks: '', returnedDate: '', pendingDueAmount: '' }
+    itemStateRef.current[itemId] ||
+    itemState[itemId] ||
+    { isCleared: true, remarks: '', returnedDate: '', pendingDueAmount: '' }
 
   const setField = (itemId, field, value) => {
     setItemState(p => ({ ...p, [itemId]: { ...getItemState(itemId), [field]: value } }))
@@ -132,8 +137,9 @@ export default function ITClearance() {
   }
 
   /* ── VALIDATION ── */
-  const validateItem = (itemId, lwd) => {
-    const st   = getItemState(itemId)
+  const validateItem = (itemId, lwd, stateSnapshot) => {
+    // ── FIX: accept optional stateSnapshot so bulk ops can pass fresh state ──
+    const st   = stateSnapshot || getItemState(itemId)
     const errs = {}
     if (st.isCleared) {
       if (!st.returnedDate) {
@@ -181,14 +187,90 @@ export default function ITClearance() {
     }
   }
 
-  /* ── BULK SUBMIT ALL (pending only) ── */
+  /* ── MARK ALL CLEARED (local state) then auto-submit ── */
+  const markAllCleared = async (exitId, lwd, items, row) => {
+    const today  = new Date().toISOString().split('T')[0]
+    const lwdStr = lwd ? lwd.split('T')[0] : today
+    const defaultDate = today <= lwdStr ? today : lwdStr
+
+    // ── FIX: Build the next state snapshot synchronously ──
+    const nextStateForItems = {}
+    items.forEach(item => {
+      const current = getItemState(item.id)
+      nextStateForItems[item.id] = {
+        ...current,
+        isCleared:    true,
+        returnedDate: current.returnedDate || defaultDate
+      }
+    })
+
+    // Apply to React state
+    setItemState(p => ({ ...p, ...nextStateForItems }))
+    // Sync the ref immediately so bulkSubmitAll reads fresh state
+    itemStateRef.current = { ...itemStateRef.current, ...nextStateForItems }
+
+    toast('All items marked as cleared — submitting now…', { icon: '✅' })
+
+    // ── FIX: Submit immediately using the fresh snapshot ──
+    setBulkSubmitting(exitId)
+    let successCount = 0
+    for (const item of items) {
+      const st = nextStateForItems[item.id]
+
+      // Validate with the fresh snapshot
+      const errs = {}
+      if (st.isCleared && !st.returnedDate) {
+        errs.returnedDate = 'Return date is required.'
+      } else if (st.isCleared && lwd) {
+        const rd      = new Date(st.returnedDate); rd.setHours(0, 0, 0, 0)
+        const lastDay = new Date(lwd);             lastDay.setHours(0, 0, 0, 0)
+        if (rd > lastDay) errs.returnedDate = 'Return date exceeds LWD.'
+      }
+      setItemErrors(p => ({ ...p, [item.id]: errs }))
+      if (Object.keys(errs).length > 0) continue
+
+      try {
+        await api.post('/Exit/update-clearance-item', {
+          itemId:                  Number(item.id),
+          isCleared:               true,
+          remarks:                 st.remarks || null,
+          returnedDate:            st.returnedDate,
+          pendingDueAmount:        null,
+          proposedLastWorkingDate: lwd ? lwd.split('T')[0] : null
+        })
+        successCount++
+      } catch (err) {
+        toast.error(`Failed: ${item.itemName} — ${err.response?.data?.message || 'error'}`)
+      }
+    }
+
+    if (successCount > 0)
+      toast.success(`${successCount} item${successCount > 1 ? 's' : ''} cleared & saved ✓`)
+
+    await reloadItems(exitId)
+    setBulkSubmitting(null)
+  }
+
+  /* ── BULK SUBMIT ALL PENDING ── */
   const bulkSubmitAll = async (row) => {
-    const items    = itemsMap[row.id] || []
-    const pending  = items.filter(item => !getItemState(item.id).isCleared)
+    const items = itemsMap[row.id] || []
+
+    // ── FIX: Read from ref so we always get the latest state even after markAllCleared ──
+    const currentState = itemStateRef.current
+
+    const pending = items.filter(item => {
+      const st = currentState[item.id]
+      return st ? !st.isCleared : true
+    })
+
     if (pending.length === 0) { toast('All items already cleared!'); return }
 
-    // Validate all first
-    const allValid = pending.every(item => validateItem(item.id, row.proposedLastWorkingDate))
+    // Validate all pending items using fresh ref state
+    let allValid = true
+    for (const item of pending) {
+      const st = currentState[item.id]
+      if (!validateItem(item.id, row.proposedLastWorkingDate, st)) allValid = false
+    }
     if (!allValid) {
       toast.error('Fix validation errors before bulk submitting.')
       return
@@ -197,7 +279,7 @@ export default function ITClearance() {
     setBulkSubmitting(row.id)
     let successCount = 0
     for (const item of pending) {
-      const st = getItemState(item.id)
+      const st = currentState[item.id] || getItemState(item.id)
       try {
         await api.post('/Exit/update-clearance-item', {
           itemId:                  Number(item.id),
@@ -217,25 +299,6 @@ export default function ITClearance() {
     setBulkSubmitting(null)
   }
 
-  /* ── MARK ALL CLEARED (local state only) ── */
-  const markAllCleared = (exitId, lwd) => {
-    const items = itemsMap[exitId] || []
-    const today = new Date().toISOString().split('T')[0]
-    const lwdStr = lwd ? lwd.split('T')[0] : today
-    // Use today or LWD whichever is earlier
-    const defaultDate = today <= lwdStr ? today : lwdStr
-    items.forEach(item => {
-      const st = getItemState(item.id)
-      if (!st.isCleared) {
-        setItemState(p => ({
-          ...p,
-          [item.id]: { ...st, isCleared: true, returnedDate: st.returnedDate || defaultDate }
-        }))
-      }
-    })
-    toast('All items marked as cleared — review dates then submit.', { icon: '✅' })
-  }
-
   /* ── LWD HELPERS ── */
   const getLwdStatus = (proposedLastWorkingDate) => {
     const today    = new Date(); today.setHours(0, 0, 0, 0)
@@ -250,7 +313,7 @@ export default function ITClearance() {
   const getLwdUrgencyScore = (proposedLastWorkingDate) => {
     const today    = new Date(); today.setHours(0, 0, 0, 0)
     const lwd      = new Date(proposedLastWorkingDate); lwd.setHours(0, 0, 0, 0)
-    return Math.ceil((lwd - today) / (1000 * 60 * 60 * 24)) // negative = overdue
+    return Math.ceil((lwd - today) / (1000 * 60 * 60 * 24))
   }
 
   const hasPendingItems = (exitId) =>
@@ -268,8 +331,6 @@ export default function ITClearance() {
   /* ── SEARCH / FILTER / SORT ── */
   const getFilteredSortedList = () => {
     let result = [...list]
-
-    // Search by name or code
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(r =>
@@ -277,13 +338,9 @@ export default function ITClearance() {
         (r.employeeCode || '').toLowerCase().includes(q)
       )
     }
-
-    // Filter by LWD status
     if (filterStatus !== 'all') {
       result = result.filter(r => getLwdStatus(r.proposedLastWorkingDate).type === filterStatus)
     }
-
-    // Sort
     result.sort((a, b) => {
       if (sortBy === 'urgency')  return getLwdUrgencyScore(a.proposedLastWorkingDate) - getLwdUrgencyScore(b.proposedLastWorkingDate)
       if (sortBy === 'progress') return getProgressStats(a.id).pct - getProgressStats(b.id).pct
@@ -291,7 +348,6 @@ export default function ITClearance() {
       if (sortBy === 'lwd')      return new Date(a.proposedLastWorkingDate) - new Date(b.proposedLastWorkingDate)
       return 0
     })
-
     return result
   }
 
@@ -396,7 +452,7 @@ export default function ITClearance() {
         </div>
       </div>
 
-      {/* ── Search / Filter / Sort toolbar ── */}
+      {/* ── Search toolbar ── */}
       <div className={s.toolbar}>
         <div className={s.searchWrap}>
           <Search size={14} className={s.searchIcon} />
@@ -412,7 +468,6 @@ export default function ITClearance() {
           )}
         </div>
       </div>
-
 
       {/* ── Accordion list ── */}
       <div className={s.accordion}>
@@ -432,7 +487,6 @@ export default function ITClearance() {
             lwdStatus.type === 'today'   ? s.lwdBadgeOrange :
             lwdStatus.type === 'urgent'  ? s.lwdBadgeAmber : s.lwdBadgeGray
 
-          // Item dots for collapsed row (only when loaded)
           const itemDots = items.slice(0, 6)
 
           return (
@@ -440,13 +494,9 @@ export default function ITClearance() {
 
               {/* ── Collapsed header ── */}
               <button className={s.panelHdr} onClick={() => toggleExpand(row.id)} type="button">
-
-                {/* Avatar */}
                 <div className={`${s.avatar} ${lwdStatus.type === 'overdue' && pendingExists ? s.avatarOverdue : ''}`}>
                   {(row.employeeName || '?')[0].toUpperCase()}
                 </div>
-
-                {/* Name + meta + item dots */}
                 <div className={s.panelLeft}>
                   <div className={s.panelInfo}>
                     <div className={s.panelNameRow}>
@@ -475,8 +525,6 @@ export default function ITClearance() {
                     </div>
                   </div>
                 </div>
-
-                {/* Middle badges */}
                 <div className={s.panelBadges}>
                   <span className={`${s.lwdBadge} ${lwdBadgeClass}`}>
                     {lwdStatus.type === 'overdue'
@@ -491,8 +539,6 @@ export default function ITClearance() {
                     <span className={s.pendingBadge}>{pendingCount} pending</span>
                   )}
                 </div>
-
-                {/* Right: mini bar + chevron */}
                 <div className={s.panelRight}>
                   {totalCount > 0 && (
                     <div className={s.miniBarWrap}>
@@ -510,7 +556,6 @@ export default function ITClearance() {
               {isExpanded && (
                 <div className={s.panelBody}>
 
-                  {/* LWD notice */}
                   {lwdStatus.type === 'overdue' && pendingExists ? (
                     <div className={`${s.lwdNotice} ${s.lwdOverdue}`}>
                       <AlertTriangle size={14} />
@@ -541,12 +586,17 @@ export default function ITClearance() {
                         {clearedCount}/{totalCount} items cleared
                       </span>
                       <div className={s.bulkActions}>
+                        {/* ── FIX: pass items and row into markAllCleared ── */}
                         {pendingExists && (
                           <button
                             className={s.bulkMarkBtn}
-                            onClick={() => markAllCleared(row.id, row.proposedLastWorkingDate)}
+                            disabled={!!bulkSubmitting}
+                            onClick={() => markAllCleared(row.id, row.proposedLastWorkingDate, items, row)}
                           >
-                            <CheckCheck size={13} /> Mark All Cleared
+                            {bulkSubmitting === row.id
+                              ? <><RefreshCw size={12} className={s.spinIcon} /> Clearing…</>
+                              : <><CheckCheck size={13} /> Mark All Cleared</>
+                            }
                           </button>
                         )}
                         <button
@@ -579,7 +629,6 @@ export default function ITClearance() {
 
                         return (
                           <div key={item.id} className={`${s.itemCard} ${st.isCleared ? s.itemCleared : s.itemFlagged}`}>
-
                             <div className={s.itemTop}>
                               <div className={`${s.itemIcon} ${st.isCleared ? s.itemIconCleared : s.itemIconFlagged}`}>
                                 <Package size={14} />

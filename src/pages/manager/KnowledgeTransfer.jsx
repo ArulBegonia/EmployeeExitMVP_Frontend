@@ -28,14 +28,14 @@ export default function KnowledgeTransfer() {
   const [ktMap, setKtMap] = useState({})
   const [ktLoading, setKtL] = useState({})
   const [form, setForm] = useState({ successorId: '', remarks: '', isCompleted: false })
-  const [formErrors, setFormErrors] = useState({})      
+  const [formErrors, setFormErrors] = useState({})
   const [newTasks, setNewTasks] = useState([])
   const [taskInput, setTaskInput] = useState({ title: '', description: '', deadline: '' })
-  const [taskErrors, setTaskErrors] = useState({})      
+  const [taskErrors, setTaskErrors] = useState({})
   const [saving, setSave] = useState(false)
   const [togglingId, setTogglingId] = useState(null)
 
-  const currentEmpId = getCurrentEmpId()  
+  const currentEmpId = getCurrentEmpId()
 
   const load = () => {
     setL(true)
@@ -60,7 +60,12 @@ export default function KnowledgeTransfer() {
 
   const openEdit = async (r) => {
     setEdit(r.id)
-    setForm({ successorId: '', remarks: '', isCompleted: r.isKtCompleted })
+    // ── Pre-fill successorId if already set on the exit request ──
+    setForm({
+      successorId: r.successorEmployeeId ? String(r.successorEmployeeId) : '',
+      remarks: r.ktRemarks || '',
+      isCompleted: r.isKtCompleted
+    })
     setFormErrors({})
     setNewTasks([])
     setTaskInput({ title: '', description: '', deadline: '' })
@@ -68,7 +73,6 @@ export default function KnowledgeTransfer() {
     await loadKtTasks(r.id)
   }
 
-  // ── validate new task input ──
   const validateTaskInput = (lwd) => {
     const errs = {}
     if (!taskInput.title.trim())
@@ -76,7 +80,6 @@ export default function KnowledgeTransfer() {
     else if (taskInput.title.trim().length > 200)
       errs.title = 'Title must not exceed 200 characters.'
 
-    // Duplicate title check across both existing and new tasks
     const existingTasks = ktMap[editing] || []
     const allTitles = [
       ...existingTasks.map(t => t.title.trim().toLowerCase()),
@@ -124,20 +127,16 @@ export default function KnowledgeTransfer() {
     } finally { setTogglingId(null) }
   }
 
-  // ── validate KT form before save ──
   const validateForm = (employeeId) => {
     const errs = {}
 
     if (!form.successorId) {
       errs.successorId = 'Successor Employee ID is required.'
-    }
-    else if (isNaN(parseInt(form.successorId))) {
+    } else if (isNaN(parseInt(form.successorId))) {
       errs.successorId = 'Successor ID must be a valid number.'
-    }
-    else if (currentEmpId && parseInt(form.successorId) === currentEmpId) {
+    } else if (currentEmpId && parseInt(form.successorId) === currentEmpId) {
       errs.successorId = 'You cannot assign yourself as the successor.'
-    }
-    else if (employeeId && parseInt(form.successorId) === employeeId) {
+    } else if (employeeId && parseInt(form.successorId) === employeeId) {
       errs.successorId = 'Successor cannot be the same employee who is exiting.'
     }
 
@@ -153,12 +152,16 @@ export default function KnowledgeTransfer() {
       toast.error('Please fix the errors before saving.')
       return
     }
-    const existingTasks = ktMap[id] || []
 
-    if (existingTasks.length === 0 && newTasks.length === 0) {
+    // ── Count both existing DB tasks + newly added ones ──
+    const existingTasks = ktMap[id] || []
+    const totalTasks = existingTasks.length + newTasks.length
+
+    if (totalTasks === 0) {
       toast.error('At least one KT task is required.')
       return
     }
+
     setSave(true)
     try {
       await api.post('/Exit/update-knowledge-transfer', {
@@ -166,6 +169,7 @@ export default function KnowledgeTransfer() {
         isCompleted: form.isCompleted,
         successorEmployeeId: form.successorId ? parseInt(form.successorId) : null,
         remarks: form.remarks || null,
+        // ── Only send newly added tasks; existing ones are already in DB ──
         tasks: newTasks.length > 0
           ? newTasks.map(t => ({
             title: t.title,
@@ -204,7 +208,6 @@ export default function KnowledgeTransfer() {
 
   return (
     <div className={s.pg}>
-
       <div className={s.hdr}>
         <div className={s.hdrGrid} />
         <div className={s.hdrOrb} />
@@ -323,11 +326,9 @@ export default function KnowledgeTransfer() {
                 </div>
               )}
 
-              {/* ── Edit Panel ── */}
               {isEditing ? (
                 <div className={s.editPanel}>
 
-                  {/* Successor ID with validation */}
                   <div className={s.fld}>
                     <label className={s.flabel}>
                       <User size={12} />
@@ -349,7 +350,6 @@ export default function KnowledgeTransfer() {
                     )}
                   </div>
 
-                  {/* Remarks with char counter */}
                   <div className={s.fld}>
                     <label className={s.flabel}>Remarks</label>
                     <textarea
@@ -372,7 +372,6 @@ export default function KnowledgeTransfer() {
                     )}
                   </div>
 
-                  {/* Add new tasks */}
                   <div className={s.addTaskSection}>
                     <div className={s.addTaskHdr}>
                       <div className={s.addTaskHdrIcon}><GitBranch size={13} /></div>
@@ -480,7 +479,6 @@ export default function KnowledgeTransfer() {
 
                   <div className={s.formActions}>
                     <Button variant="ghost" size="sm" onClick={() => setEdit(null)}>Cancel</Button>
-                    {/* ── Pass employeeId to save for self-assignment check ── */}
                     <Button variant="primary" size="sm" loading={saving}
                       onClick={() => save(r.id, r.employeeId)}>
                       Save KT Update
