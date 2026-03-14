@@ -97,10 +97,6 @@ export default function ManagerMyStatus() {
         <div className={s.hdrGrid} />
         <div className={s.hdrOrb} />
         <div className={s.hdrContent}>
-          <div className={s.hdrEyebrow}>
-            <span className={s.hdrEyebrowDot} />
-            <span>Manager Portal</span>
-          </div>
           <div className={s.hdrMain}>
             <div>
               <h2 className={s.hdrTitle}>My Exit Status</h2>

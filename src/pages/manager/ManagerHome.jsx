@@ -71,10 +71,6 @@ export default function ManagerHome() {
         <div className={s.hdrGrid} />
         <div className={s.hdrOrb} />
         <div className={s.hdrContent}>
-          <div className={s.hdrEyebrow}>
-            <span className={s.hdrEyebrowDot} />
-            <span>Manager Portal</span>
-          </div>
           <h2 className={s.hdrTitle}>Manager Dashboard</h2>
           <p className={s.hdrSub}>Review team exits and manage your own process</p>
         </div>

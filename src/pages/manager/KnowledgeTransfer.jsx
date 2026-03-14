@@ -62,7 +62,7 @@ export default function KnowledgeTransfer() {
     setEdit(r.id)
     // ── Pre-fill successorId if already set on the exit request ──
     setForm({
-      successorId: r.successorEmployeeId ? String(r.successorEmployeeId) : '',
+      successorId: r.successorEmployeeId && r.successorEmployeeId > 0 ? String(r.successorEmployeeId) : '',
       remarks: r.ktRemarks || '',
       isCompleted: r.isKtCompleted
     })
@@ -167,16 +167,18 @@ export default function KnowledgeTransfer() {
       await api.post('/Exit/update-knowledge-transfer', {
         exitRequestId: id,
         isCompleted: form.isCompleted,
-        successorEmployeeId: form.successorId ? parseInt(form.successorId) : null,
+        successorEmployeeId: form.successorId && parseInt(form.successorId) > 0 ? parseInt(form.successorId) : null,
         remarks: form.remarks || null,
         // ── Only send newly added tasks; existing ones are already in DB ──
-        tasks: newTasks.length > 0
-          ? newTasks.map(t => ({
-            title: t.title,
-            description: t.description || null,
-            deadline: new Date(t.deadline).toISOString()
-          }))
-          : null,
+        tasks:
+          newTasks.length > 0
+            ? newTasks.map(t => ({
+              title: t.title.trim(),
+              description: t.description?.trim() || null,
+              deadline: t.deadline
+            }))
+            : null,
+
       })
       toast.success('KT status updated!')
       setEdit(null)
@@ -212,10 +214,6 @@ export default function KnowledgeTransfer() {
         <div className={s.hdrGrid} />
         <div className={s.hdrOrb} />
         <div className={s.hdrContent}>
-          <div className={s.hdrEyebrow}>
-            <span className={s.hdrEyebrowDot} />
-            <span>Manager Portal</span>
-          </div>
           <div className={s.hdrMain}>
             <div>
               <h2 className={s.hdrTitle}>Knowledge Transfer</h2>
@@ -337,12 +335,14 @@ export default function KnowledgeTransfer() {
                     <input
                       className={`${s.finput} ${formErrors.successorId ? s.inputErr : ''}`}
                       type="number"
+                      min="1"
                       placeholder="e.g. 1042"
                       value={form.successorId}
                       onChange={e => {
-                        setForm(p => ({ ...p, successorId: e.target.value }))
-                        if (formErrors.successorId)
-                          setFormErrors(p => ({ ...p, successorId: undefined }))
+                        const value = e.target.value
+                        if (value === '' || parseInt(value) > 0) {
+                          setForm(p => ({ ...p, successorId: value }))
+                        }
                       }}
                     />
                     {formErrors.successorId && (

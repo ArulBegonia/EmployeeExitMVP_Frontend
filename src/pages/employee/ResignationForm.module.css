@@ -648,9 +648,115 @@
   color: #94A3B8;
 }
 
-/* ══════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════ */
+/* Employee Snapshot */
+.snapshotGrid   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.snapshotItem   { display: flex; flex-direction: column; gap: 2px; }
+.snapshotKey    { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.snapshotVal    { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+
+/* Radio & Checkbox rows */
+.radioRow    { display: flex; gap: 16px; flex-wrap: wrap; padding: 4px 0; }
+.radioLabel  { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.checkLabel  { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.checkGrid   { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* Star Rating */
+.starRow    { display: flex; align-items: center; gap: 4px; }
+.starBtn    { background: none; border: none; cursor: pointer; color: #D1D5DB; padding: 2px; transition: color .15s; }
+.starActive { color: #F59E0B; }
+.starLabel  { font-size: 13px; color: var(--text-muted); margin-left: 8px; }
+
+/* ── Wizard progress ── */
+.wizardBar           { display: flex; align-items: center; margin: 0 0 24px; padding: 16px 20px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
+.wizardStep          { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 64px; opacity: .45; transition: opacity .2s; }
+.wizardActive        { opacity: 1; }
+.wizardDone          { opacity: .7; }
+.wizardDot           { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: background .2s, color .2s; }
+.wizardActive .wizardDot  { background: var(--primary); color: #fff; }
+.wizardDone   .wizardDot  { background: var(--success-muted); color: var(--success); }
+.wizardLabel         { font-size: 11px; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
+.wizardActive .wizardLabel { color: var(--primary); }
+.wizardConnector     { flex: 1; height: 2px; background: var(--border); min-width: 16px; }
+.wizardConnectorDone { background: var(--success-muted); }
+
+/* ── Step nav ── */
+.stepNav   { display: flex; justify-content: space-between; margin-top: 8px; }
+
+/* ── Draft saved badge ── */
+.draftBadge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--success); background: var(--success-muted); border-radius: 20px; padding: 3px 10px; margin-bottom: 8px; animation: fadeIn .2s; }
+
+/* ── Buddy lookup ── */
+.buddyInputWrap  { position: relative; }
+.buddyStatus     { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+.buddyFound      { color: var(--success); }
+.buddyNotFound   { color: var(--error); }
+.buddyCard       { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--success); margin-top: 4px; background: var(--success-muted); border-radius: 6px; padding: 6px 10px; }
+.buddyCardErr    { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--error); background: var(--error-muted); border-radius: 6px; padding: 6px 10px; margin-top: 4px; }
+.spin            { animation: spin 1s linear infinite; }
+@keyframes spin  { to { transform: rotate(360deg); } }
+
+/* ── File upload ── */
+.dropZone        { border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 4px; transition: border-color .15s, background .15s; }
+.dropZone:hover,
+.dropZoneActive  { border-color: var(--primary); background: var(--primary-muted); }
+.dropIcon        { color: var(--primary); margin-bottom: 4px; }
+.dropHint        { font-size: 11px; }
+.fileHidden      { display: none; }
+.attachRow       { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 10px; background: var(--surface-2); border-radius: 6px; margin-top: 6px; }
+.attachName      { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachSize      { color: var(--text-muted); font-size: 11px; }
+.attachRemove    { background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; }
+.attachIcon      { color: var(--text-muted); flex-shrink: 0; }
+
+/* ── Completeness bar ── */
+.complBox        { padding: 2px 0; }
+.complHeader     { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+.complTrack      { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
+.complFill       { height: 100%; background: var(--primary); border-radius: 99px; transition: width .4s ease; }
+.complList       { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.complItem       { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.complDone       { color: var(--success); }
+.complPending    { color: var(--text-muted); }
+.complDone  .complDot    { background: var(--success); }
+.complPending .complDot  { background: var(--border); }
+.complDot        { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Weekend warning ── */
+.weekendWarn     { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #D97706; background: #FEF3C7; border-radius: 6px; padding: 5px 10px; margin-top: 4px; }
+
+/* ── Review step ── */
+.reviewGrid         { display: flex; flex-direction: column; gap: 20px; }
+.reviewSection      { background: var(--surface-2); border-radius: 10px; padding: 14px 16px; }
+.reviewSectionTitle { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 10px; }
+.reviewRow          { display: flex; justify-content: space-between; align-items: flex-start; font-size: 13px; padding: 4px 0; gap: 8px; }
+.reviewRowWrap strong { text-align: right; max-width: 60%; }
+.reviewKey          { color: var(--text-muted); flex-shrink: 0; }
+.summaryWarn        { color: #D97706; }
+
+/* ── Buddy lookup ── */
+.buddyInputWrap  { position: relative; }
+.buddyStatus     { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+.buddyFound      { color: var(--success); }
+.buddyNotFound   { color: var(--error); }
+.buddyCard       { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--success); margin-top: 4px; background: var(--success-muted); border-radius: 6px; padding: 6px 10px; }
+.buddyCardErr    { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--error); background: var(--error-muted); border-radius: 6px; padding: 6px 10px; margin-top: 4px; }
+.spin            { animation: spin 1s linear infinite; }
+@keyframes spin  { to { transform: rotate(360deg); } }
+
+/*  Weekend warning  */
+.weekendWarn     { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #2563EB; background: #DBEAFE; border-radius: 6px; padding: 5px 10px; margin-top: 4px; }
+
+/*  Notice pill enhancements  */
+.noticePillReq   { opacity: .8; }
+
+/*  Draft saved badge  */
+.draftBadge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--success); background: var(--success-muted); border-radius: 20px; padding: 3px 10px; margin-bottom: 12px; animation: fadeIn .2s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/*  Summary warning color  */
+.summaryWarn { color: #D97706; }
+
+/* RESPONSIVE */
 @media (max-width: 768px) {
   .grid { grid-template-columns: 1fr; }
   .assetAddRow { grid-template-columns: 1fr 1fr; }
